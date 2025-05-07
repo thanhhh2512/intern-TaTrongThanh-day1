@@ -1,27 +1,75 @@
-import { useForm } from "react-hook-form";
+"use client";
 
-export default function Form({ fields, onSubmit }) {
-  const { register, handleSubmit } = useForm();
+import React from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import {
+  Form,
+  FormField,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  FormItem,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+const formSchema = z.object({
+  name: z.string().min(1, { message: "Tên là bắt buộc" }),
+  email: z.string().email({ message: "Email không hợp lệ" }),
+  age: z
+    .string()
+    .refine((val) => !isNaN(val), { message: "Tuổi phải là một số hợp lệ" })
+    .transform((val) => Number(val))
+    .refine((val) => val >= 18, { message: "Tuổi phải từ 18 trở lên" }),
+});
+
+export default function FormComponent({ fields, onSubmit }) {
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      age: "",
+    },
+  });
+
+  const handleValidSubmit = (data) => {
+    onSubmit(data);
+    form.reset();
+  };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {fields.map((field) => (
-        <div key={field.name}>
-          <label className="block text-sm font-medium">{field.label}</label>
-          <input
-            {...register(field.name)}
-            type={field.type}
-            placeholder={field.placeholder}
-            className="mt-1 block w-full rounded border p-2"
-          />
-        </div>
-      ))}
-      <button
-        type="submit"
-        className="mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(handleValidSubmit)}
+        className="space-y-4"
       >
-        Gửi
-      </button>
-    </form>
+        {fields.map((field) => (
+          <FormField
+            key={field.name}
+            control={form.control}
+            name={field.name}
+            render={({ field: controller }) => (
+              <FormItem>
+                <FormLabel>{field.label}</FormLabel>
+                <FormControl>
+                  <Input
+                    {...controller}
+                    type={field.type}
+                    placeholder={field.placeholder}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ))}
+
+        <Button type="submit">Gửi</Button>
+      </form>
+    </Form>
   );
 }
